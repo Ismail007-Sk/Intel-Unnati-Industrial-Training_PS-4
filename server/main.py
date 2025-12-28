@@ -6,13 +6,13 @@ from chat.routes import router as chat_router
 
 app = FastAPI(title="Enterprise PDF RAG")
 
-# Add this block immediately after creating 'app'
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins (good for dev). For prod, use ["http://localhost:5173"]
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, OPTIONS, etc.)
-    allow_headers=["*"],  # Allows all headers (Authorization, Content-Type, etc.)
+    allow_methods=["*"],  
+    allow_headers=["*"],  
 )
 
 app.include_router(auth_router, prefix="/auth")
