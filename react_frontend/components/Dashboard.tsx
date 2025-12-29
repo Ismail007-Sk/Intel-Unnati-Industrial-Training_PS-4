@@ -445,6 +445,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                         className="hidden"
                         accept=".pdf"
                         onChange={handleFileChange}
+                        title="Select a PDF file to upload"
                       />
                     </div>
                   </div>
