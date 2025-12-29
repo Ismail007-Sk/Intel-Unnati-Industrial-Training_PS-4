@@ -4,7 +4,6 @@ import {
   MessageSquare,
   LineChart,
   LogOut,
-  ChevronDown,
   Upload,
   Sparkles,
   Send,
@@ -12,8 +11,8 @@ import {
   User as UserIcon,
   Bot,
   ShieldCheck,
-  Zap,
   LayoutGrid,
+  Github,
 } from "lucide-react";
 import { UserProfile, UploadedFile, Role } from "../types";
 
@@ -33,12 +32,33 @@ interface DashboardProps {
 
 type Tab = "documents" | "chat" | "insights";
 
+// Helper function to format the AI response text
+const formatMessageContent = (text: string) => {
+  // 1. Ensure text preceding a bullet point (*) has a newline
+  let formatted = text.replace(/([^\n])\s*\*\s/g, "$1\n\n• ");
+
+  // 2. Replace starting * with a bullet point
+  formatted = formatted.replace(/^\*\s/g, "• ");
+
+  // 3. Clean up multiple newlines if any
+  return formatted.trim();
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+  const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("documents");
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-  const [visibilityRole, setVisibilityRole] = useState<Role>("admin");
-  const [isRoleOpen, setIsRoleOpen] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // State initialization from LocalStorage
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(() => {
+    const saved = localStorage.getItem("uploadedFiles");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(() => {
+    return localStorage.getItem("selectedFileId") || null;
+  });
+
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionResult, setExtractionResult] = useState<string | null>(null);
   const [selectedFileToUpload, setSelectedFileToUpload] = useState<File | null>(
@@ -50,12 +70,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const roles: Role[] = ["admin", "doctor", "nurse", "patient"];
+  useEffect(() => {
+    localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
+  }, [uploadedFiles]);
 
-  // Helper to generate Basic Auth header
+  useEffect(() => {
+    if (selectedFileId) {
+      localStorage.setItem("selectedFileId", selectedFileId);
+    }
+  }, [selectedFileId]);
+
   const getAuthHeader = () => {
-    // Note: This assumes the user object has the password attached to it.
-    // In a real production app, consider using tokens (JWT).
     const password = (user as any).password || "";
     return `Basic ${btoa(`${user.username}:${password}`)}`;
   };
@@ -77,6 +102,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const handleUpload = async () => {
     if (!selectedFileToUpload) return;
 
+    // Reset progress and start simulation
+    setUploadProgress(0);
+
+    // Create a simulated progress interval
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 90) return prev; // Hold at 90% until actually done
+        return prev + 10;
+      });
+    }, 500);
+
     try {
       const formData = new FormData();
       formData.append("file", selectedFileToUpload);
@@ -89,34 +125,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         body: formData,
       });
 
+      // Clear interval and complete progress
+      clearInterval(interval);
+      setUploadProgress(100);
+
       if (response.ok) {
-        // Optimistically update UI on success since backend doesn't return file metadata
         const newFile: UploadedFile = {
           id: Math.random().toString(36).substr(2, 9),
           name: selectedFileToUpload.name,
           owner: user.username,
-          visibility: visibilityRole,
+          visibility: "admin",
           timestamp: new Date().toLocaleDateString(),
         };
 
-        setUploadedFiles([newFile, ...uploadedFiles]);
-        setSelectedFileToUpload(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        if (!selectedFileId) setSelectedFileId(newFile.id);
-
-        // Optional: Notify success (using alert to keep UI strict)
-        // alert("Document uploaded and indexed successfully");
+        // Small delay to let the user see the 100% bar before resetting
+        setTimeout(() => {
+          setUploadedFiles([newFile, ...uploadedFiles]);
+          setSelectedFileToUpload(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          setSelectedFileId(newFile.id);
+          setUploadProgress(0); // Reset progress
+        }, 800);
       } else {
         alert("Document upload failed");
+        setUploadProgress(0);
       }
     } catch (error) {
+      clearInterval(interval);
+      setUploadProgress(0);
       console.error("Upload error:", error);
       alert("Failed to connect to server");
     }
   };
 
+  const selectedFile = uploadedFiles.find((f) => f.id === selectedFileId);
+
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !selectedFileId) return;
+    if (!inputText.trim() || !selectedFileId || !selectedFile) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -129,9 +174,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     setInputText("");
 
     try {
-      // Create form-urlencoded body as per requests.post(data={...}) behavior
+      const contextAwarePrompt = `From document "${selectedFile.name}" provide me the info: ${userMsg.text}`;
+
       const formData = new URLSearchParams();
-      formData.append("message", userMsg.text);
+      formData.append("message", contextAwarePrompt);
 
       const response = await fetch(`${API_URL}/chat`, {
         method: "POST",
@@ -172,17 +218,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   };
 
   const handleExtraction = async (type: string) => {
-    if (!selectedFileId) return;
+    if (!selectedFileId || !selectedFile) return;
     setIsExtracting(true);
 
     try {
-      const message =
+      const baseAction =
         type === "Summary"
-          ? "Summarize the document"
-          : "Extract important information";
+          ? "summarize the document"
+          : "extract important information";
+      const contextAwareMessage = `From document "${selectedFile.name}", please ${baseAction}`;
 
       const formData = new URLSearchParams();
-      formData.append("message", message);
+      formData.append("message", contextAwareMessage);
 
       const response = await fetch(`${API_URL}/chat`, {
         method: "POST",
@@ -197,7 +244,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         const data = await response.json();
         setExtractionResult(data.answer);
       } else {
-        setExtractionResult("Failed to extract summary.");
+        setExtractionResult("Failed to extract information.");
       }
     } catch (error) {
       setExtractionResult("Error connecting to server.");
@@ -206,13 +253,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
   };
 
-  const selectedFile = uploadedFiles.find((f) => f.id === selectedFileId);
-
   return (
     <div className="flex h-screen bg-[#fafafa] text-[#0f172a] overflow-hidden font-sans">
-      {/* Sidebar */}
-      <aside className="w-72 border-r border-slate-200 bg-white flex flex-col shrink-0 z-30">
-        <div className="p-8 pb-10">
+      <aside className="w-72 border-r border-slate-200 bg-white flex flex-col shrink-0 z-30 h-full">
+        <div className="p-8 pb-6">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white text-xs font-black italic">
               E
@@ -229,7 +273,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </p>
         </div>
 
-        <div className="px-6 mb-8">
+        <div className="px-6 mb-6">
           <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-[1.25rem]">
             <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-200 font-black text-sm uppercase">
               {user.username.slice(0, 2)}
@@ -248,7 +292,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        {/* Navigation Tabs */}
+        <nav className="px-4 space-y-1 shrink-0">
           <SidebarItem
             icon={<LayoutGrid size={18} />}
             label="Documents"
@@ -269,7 +314,61 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           />
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
+        {/* NEW SECTION: File List in Sidebar */}
+        <div className="flex-1 overflow-y-auto px-4 mt-8 mb-4 min-h-0">
+          <p className="px-2 text-[9px] uppercase tracking-[0.25em] font-black text-slate-400 mb-4 sticky top-0 bg-white z-10 py-2">
+            Recent Files
+          </p>
+          <div className="space-y-1">
+            {uploadedFiles.length === 0 ? (
+              <p className="text-xs text-slate-300 font-medium px-2 italic">
+                No files yet
+              </p>
+            ) : (
+              uploadedFiles.map((file) => (
+                <button
+                  key={file.id}
+                  onClick={() => setSelectedFileId(file.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-xs font-bold transition-all duration-200 group text-left ${
+                    selectedFileId === file.id
+                      ? "bg-slate-100 text-slate-900 border border-slate-200"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-transparent"
+                  }`}
+                >
+                  <FileText
+                    size={14}
+                    className={
+                      selectedFileId === file.id
+                        ? "text-slate-900"
+                        : "text-slate-400 group-hover:text-slate-600"
+                    }
+                  />
+                  <span className="truncate">{file.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Footer Actions: GitHub & Logout */}
+        <div className="p-4 border-t border-slate-100 shrink-0 mt-auto space-y-2">
+          {/* GitHub Repo Link */}
+          <a
+            href="https://github.com/Ismail007-Sk/Intel-Unnati-Industrial-Training_PS-4" // <--- PUT YOUR LINK HERE
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-5 py-4 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-2xl transition-all group"
+          >
+            <Github
+              size={18}
+              className="group-hover:scale-110 transition-transform"
+            />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+              Source Code
+            </span>
+          </a>
+
+          {/* Logout Button */}
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-3 px-5 py-4 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
@@ -285,7 +384,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-20 border-b border-slate-100 bg-white/50 backdrop-blur-xl px-10 flex items-center justify-between shrink-0 sticky top-0 z-20">
           <div className="flex items-center gap-6">
@@ -351,46 +449,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  <div className="w-full md:w-56 space-y-2">
-                    <label className="text-[9px] uppercase font-black text-slate-300 ml-1">
-                      Access Level
-                    </label>
-                    <div className="relative">
-                      <button
-                        onClick={() => setIsRoleOpen(!isRoleOpen)}
-                        className="h-14 w-full flex items-center justify-between px-5 border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 bg-slate-50 hover:bg-white transition-all capitalize focus:outline-none"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck size={16} className="text-slate-900" />
-                          {visibilityRole}
-                        </div>
-                        <ChevronDown size={16} className="text-slate-300" />
-                      </button>
-                      {isRoleOpen && (
-                        <div className="absolute top-full mt-2 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl z-30 py-2 overflow-hidden animate-in fade-in slide-in-from-top-1">
-                          {roles.map((role) => (
-                            <button
-                              key={role}
-                              onClick={() => {
-                                setVisibilityRole(role);
-                                setIsRoleOpen(false);
-                              }}
-                              className="w-full text-left px-5 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors capitalize"
-                            >
-                              {role}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
                   <button
                     onClick={handleUpload}
-                    disabled={!selectedFileToUpload}
-                    className="h-14 px-10 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3 hover:bg-black transition-all active:scale-95 shadow-xl shadow-slate-200 disabled:opacity-20"
+                    disabled={!selectedFileToUpload || uploadProgress > 0}
+                    className="relative h-14 w-40 overflow-hidden bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-black transition-all active:scale-95 shadow-xl shadow-slate-200 disabled:opacity-70 disabled:active:scale-100"
                   >
-                    <Upload size={16} /> Upload
+                    {/* Progress Bar Background */}
+                    {uploadProgress > 0 && (
+                      <div
+                        className="absolute left-0 top-0 bottom-0 bg-slate-700 transition-all duration-300 ease-out"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    )}
+
+                    {/* Button Content (z-10 to sit on top of progress bar) */}
+                    <div className="relative z-10 flex items-center gap-3">
+                      {uploadProgress > 0 ? (
+                        <>
+                          {/* Simple Spinner */}
+                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          {uploadProgress === 100 ? "Done" : "Uploading..."}
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={16} /> Upload
+                        </>
+                      )}
+                    </div>
                   </button>
                 </div>
               </section>
@@ -466,10 +551,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
           {activeTab === "chat" && (
             <div className="flex-1 flex flex-col h-full bg-white relative animate-in fade-in duration-500">
-              {/* Chat Container */}
               <div className="flex-1 overflow-y-auto px-10 pt-16 pb-48 flex flex-col">
                 <div className="max-w-4xl mx-auto w-full space-y-12">
-                  {/* Greeting Header */}
                   <div className="mb-12 space-y-6">
                     <div className="space-y-2">
                       <h4 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
@@ -531,14 +614,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                                 <Bot size={22} />
                               )}
                             </div>
+
+                            {/* CHANGED: Added whitespace-pre-wrap to respect newlines and formatted content */}
                             <div
-                              className={`p-6 rounded-[2.25rem] text-[16px] leading-relaxed shadow-sm ${
+                              className={`p-6 rounded-[2.25rem] text-[16px] leading-relaxed shadow-sm whitespace-pre-wrap ${
                                 msg.sender === "user"
                                   ? "bg-slate-100 border border-slate-200 rounded-tr-none text-slate-900"
                                   : "bg-white border border-slate-100 rounded-tl-none text-slate-700"
                               }`}
                             >
-                              {msg.text}
+                              {/* Using the formatter only for AI messages to keep user text raw */}
+                              {msg.sender === "ai"
+                                ? formatMessageContent(msg.text)
+                                : msg.text}
                             </div>
                           </div>
                         </div>
@@ -549,7 +637,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              {/* Input Area */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent pt-12 pb-10 px-10 pointer-events-none">
                 <div className="max-w-3xl mx-auto w-full pointer-events-auto">
                   <div className="bg-white border border-slate-200 rounded-3xl flex flex-col p-4 transition-all relative">
@@ -633,8 +720,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                           Clear
                         </button>
                       </div>
+
+                      {/* CHANGED: Added whitespace-pre-wrap here too for consistency */}
                       <div className="text-lg text-slate-200 whitespace-pre-wrap leading-relaxed font-medium">
-                        {extractionResult}
+                        {formatMessageContent(extractionResult)}
                       </div>
                     </div>
                   </div>
@@ -650,6 +739,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             </div>
           )}
         </div>
+        <footer className="mt-8 flex items-center justify-center gap-8 text-[9px] uppercase tracking-[0.25em] font-black text-slate-300 pb-4 shrink-0">
+          <span className="hover:text-slate-900 transition-colors cursor-default">
+            Made by Supratim, Ismail, Sanchari
+          </span>
+        </footer>
       </main>
     </div>
   );
