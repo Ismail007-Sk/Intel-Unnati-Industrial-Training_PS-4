@@ -1,4 +1,4 @@
-# 🏥 Intel-Unnati-Industrial-Training_PS-4 — EduRAG
+# Intel-Unnati-Industrial-Training_PS-4 — EduRAG
 
 EduRAG is a **document-aware intelligent assistant** built to enable **accurate question answering and insight generation from unstructured PDF documents** such as reports, manuals, policies, and research files.
 The system strictly answers queries and generates insights **only from user-uploaded documents**, ensuring **no hallucination and no external knowledge leakage**.
