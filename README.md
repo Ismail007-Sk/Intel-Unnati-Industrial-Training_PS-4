@@ -63,10 +63,6 @@ All responses are generated **strictly from the selected document context**, ens
 
 ![RAG-Pipeline Workflow](./assets/RAG-Pipeline-Workflow.png)
 
-### 🔹 EduRag Application Architecture
-
-![EduRag Application Architecture](./assets/EduRag-Application-Architecture.png)
-
 ### 🔹 Core Modules
 
 ![Core Modules](./assets/EduRAG-Core-Modules-Architecture.png)
@@ -76,10 +72,16 @@ All responses are generated **strictly from the selected document context**, ens
 ## 📄 Project Resources
 
 - 📘 **Full Project Report (PDF):**
-  [View Report](./assets/projectReport.pdf)
+  [View Report](./assets/Intel-Unnati-Industrial-Training_PS-4.pdf)
 
 - 📊 **Project Presentation (PPT):**
-  [View Presentation](./assets/projectReport.ppt)
+  [View Presentation](./assets/Intel-Unnati-Industrial-Training_PS-4.pptx)
+
+- 📊 **Project Presentation (PPT PDF):**
+  [View Presentation](./assets/Intel-Unnati-Industrial-Training_PS-4_ppt.pdf)
+
+- 📊 **Project Video Explanation (PPT):**
+  [View Presentation](./assets/Intel-Unnati-Industrial-Training_PS-4_Video.mp4)
 
 ---
 
