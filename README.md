@@ -80,8 +80,9 @@ All responses are generated **strictly from the selected document context**, ens
 - 📊 **Project Presentation (PPT PDF):**
   [View Presentation](./assets/Intel-Unnati-Industrial-Training_PS-4_ppt.pdf)
 
-- 📊 **Project Video Explanation (PPT):**
+- 📊 **Project Video Explanation (MP4):**
   [View Presentation](./assets/Intel-Unnati-Industrial-Training_PS-4_Video.mp4)
+  _(https://drive.google.com/file/d/1oUhNFhm4G5HscT-U_1fTyc6lLsWfm0Z_/view?usp=sharing)\_
 
 ---
 
