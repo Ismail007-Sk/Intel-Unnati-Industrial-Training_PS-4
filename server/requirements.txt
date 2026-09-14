@@ -3,44 +3,41 @@ fastapi
 uvicorn[standard]
 python-multipart
 
-# LangChain & Ecosystem
+# LangChain
 langchain
 langchain-community
 langchain-core
 langchain-google-genai
 langchain-groq
 
-# Vectorstore (Cloud)
+# Vector Database
 pinecone-client
 
 # Embeddings
 google-generativeai
 sentence-transformers
 
-# Local Vector DB (optional fallback)
+# Local Vector DB
 faiss-cpu
 
-# PDF + OCR Processing
-pymupdf            # (fitz) used for PDF + image extraction
-pypdf              # lightweight fallback parser
-pillow             # image handling
+# PDF Processing
+pymupdf
+pypdf
+pillow
 
-# Tesseract OCR (main OCR engine)
+# OCR
 pytesseract
-opencv-python       # image preprocessing for OCR
-
-# Optional OCR for handwriting / blurry images
+opencv-python-headless
 easyocr
 
-# Unstructured (still useful for HTML, email, docx, etc.)
+# Document Processing
 unstructured
-unstructured-inference
 unstructured[pdf]
 
-# File type detection (Windows safe)
-python-magic-bin
+# File Type Detection - Linux/Render
+python-magic
 
-# Environment Variables
+# Environment
 python-dotenv
 
 # Utilities
@@ -48,9 +45,6 @@ pydantic
 requests
 tqdm
 
-# Database + Auth (if needed in your backend)
+# Database/Auth
 pymongo
 bcrypt
-
-
-#  uv pip install -r requirements.txt
