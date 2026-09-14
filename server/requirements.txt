@@ -1,50 +1,60 @@
+# =========================
 # Web Framework
+# =========================
 fastapi
 uvicorn[standard]
 python-multipart
 
+# =========================
 # LangChain
+# =========================
 langchain
 langchain-community
 langchain-core
+langchain-text-splitters
 langchain-google-genai
 langchain-groq
 
+# =========================
 # Vector Database
+# =========================
 pinecone
 
-# Embeddings
+# =========================
+# Google AI / Embeddings
+# =========================
 google-generativeai
-sentence-transformers
 
-# Local Vector DB
-faiss-cpu
-
+# =========================
 # PDF Processing
+# =========================
 pymupdf
 pypdf
 pillow
 
+# =========================
 # OCR
+# =========================
 pytesseract
 opencv-python-headless
-easyocr
 
+# =========================
 # Document Processing
+# =========================
 unstructured
 unstructured[pdf]
-
-# File Type Detection - Linux/Render
 python-magic
 
-# Environment
+# =========================
+# Environment / Utilities
+# =========================
 python-dotenv
-
-# Utilities
 pydantic
 requests
 tqdm
 
-# Database/Auth
+# =========================
+# Database / Authentication
+# =========================
 pymongo
 bcrypt
