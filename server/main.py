@@ -3,16 +3,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from auth.routes import router as auth_router
 from docs.routes import router as docs_router
 from chat.routes import router as chat_router
+import os
+
 
 app = FastAPI(title="Enterprise PDF RAG")
 
 
+# Read and split origins from environment, falling back to localhost if not set
+raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3001")
+origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.trycloudflare\.com",
     allow_credentials=True,
-    allow_methods=["*"],  
-    allow_headers=["*"],  
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(auth_router, prefix="/auth")

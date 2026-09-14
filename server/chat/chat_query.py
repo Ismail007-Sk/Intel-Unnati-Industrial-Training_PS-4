@@ -14,7 +14,7 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+# os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index = pc.Index(PINECONE_INDEX_NAME)
@@ -22,10 +22,10 @@ index = pc.Index(PINECONE_INDEX_NAME)
 embed_model = GoogleGenerativeAIEmbeddings(
     model="models/gemini-embedding-001"
 )
-
+# llama-3.3-70b-versatile
 llm = ChatGroq(
     temperature=0.3,
-    model_name="llama-3.3-70b-versatile",
+    model_name="openai/gpt-oss-120b",
     groq_api_key=GROQ_API_KEY
 )
 

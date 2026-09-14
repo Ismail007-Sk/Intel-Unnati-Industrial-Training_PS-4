@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { UserProfile, UploadedFile, Role } from "../types";
 
-const API_URL = "http://localhost:8000";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface Message {
   id: string;

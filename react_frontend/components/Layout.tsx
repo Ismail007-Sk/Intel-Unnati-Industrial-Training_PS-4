@@ -51,7 +51,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         <footer className="mt-8 flex items-center justify-center gap-8 text-[9px] uppercase tracking-[0.25em] font-black text-slate-300">
           <span className="hover:text-slate-900 transition-colors cursor-default">
-            Made by Supratim, Ismail, Sanchari
+            Made by Ismail Sheikh
           </span>
         </footer>
       </div>
