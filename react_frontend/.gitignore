@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Production build
+dist/
+build/
+
+# Vite
+.vite/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+
+# Testing / coverage
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Local certificates
+*.pem
+
+# Vercel
+.vercel/

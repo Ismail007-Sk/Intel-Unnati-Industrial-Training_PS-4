@@ -1,0 +1,14 @@
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Uploaded files
+**/uploaded_docs/
+**/uploads/
