@@ -5,18 +5,13 @@ from docs.routes import router as docs_router
 from chat.routes import router as chat_router
 import os
 
-
 app = FastAPI(title="Enterprise PDF RAG")
 
-
-# Read and split origins from environment, falling back to localhost if not set
-raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3001")
-origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+frontend_url = os.getenv("CORS_ORIGINS", "http://localhost:3001").strip()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"https://.*\.trycloudflare\.com",
+    allow_origins=[frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,6 +20,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/auth")
 app.include_router(docs_router, prefix="/docs")
 app.include_router(chat_router)
+
 
 @app.get("/check")
 def health_check():
